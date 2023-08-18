@@ -1,5 +1,6 @@
 import PySimpleGUI as sg
-import csv, json, logging, configparser
+import logging, numpy
+import pandas as pd
 import xml.etree.ElementTree as ET
 from logging.handlers import RotatingFileHandler
 
@@ -23,19 +24,21 @@ logger.setLevel(logging.INFO)  # Set the desired log level
 # Function declaration #
 
 def xml_parser(file):
-    
+
     tree = ET.parse(file)
     root = tree.getroot()
 
     xml_string = ET.tostring(root).decode("UTF-8")
-    window["-INPUT_CONSOLE-"].update(xml_string)
+    window["-OUTPUT_WINDOW-"].update(xml_string)
     
-    document = [elem.tag for elem in root.iter()]
-    document_to_set = set(document)
-    set_to_list = list(document_to_set)
+    # Get elements in XML File:
+    tags_xml = [elem.tag for elem in root.iter()]
+    tags_to_set = set(tags_xml)
+    tags_to_list = list(tags_to_set)
+    
     # Add Elements to ComboBox List
-    window["-ELEMENT_NAME_INPUT-"].update(values=set_to_list)
-    window["-DEL_ELEMENT_NAME_INPUT-"].update(values=set_to_list)
+    window["-ELEMENT_NAME_INPUT-"].update(values=tags_to_list)
+    window["-DEL_ELEMENT_NAME_INPUT-"].update(values=tags_to_list)
     
 def xml_add_attribute(file,element_name,attribute_name,attribute_value):
     
@@ -59,6 +62,7 @@ def xml_add_attribute(file,element_name,attribute_name,attribute_value):
     tree.write(file)
 
 def xml_delete_attribute(file,element_name,attribute_name):
+    
     tree = ET.parse(file)
     root = tree.getroot()
     
@@ -66,6 +70,12 @@ def xml_delete_attribute(file,element_name,attribute_name):
         del(element.attrib[attribute_name])
     
     tree.write(file)
+    window["-DEL_ELEMENT_NAME_INPUT-"].update("")
+    window["-DEL_ATTRIBUTE_NAME_INPUT-"]
+
+def conert_xml_to_csv(file,output):
+    df = pd.read_xml(file)
+    df.to_csv(output)
     
 #def csv_parser()
 #def json_parser()
@@ -73,37 +83,44 @@ def xml_delete_attribute(file,element_name,attribute_name):
 # Graphical User Interface settings #
 
 # Add your new theme colors and settings
-my_new_theme = {"BACKGROUND": "#1c1e23",
+my_new_theme = {"BACKGROUND": "#3d3f46",
                 "TEXT": "#d2d2d3",
-                "INPUT": "#3d3f46",
+                "INPUT": "#1c1e23",
                 "TEXT_INPUT": "#d2d2d3",
-                "SCROLL": "#3d3f46",
-                "BUTTON": ("#6fb97e", "#313641"),
-                "PROGRESS": ("#6fb97e", "#4a6ab3"),
+                "SCROLL": "#1c1e23",
+                "BUTTON": ("#e6d922", "#313641"),
+                "PROGRESS": ("#e6d922", "#4a6ab3"),
                 "BORDER": 1,
                 "SLIDER_DEPTH": 0,
                 "PROGRESS_DEPTH": 0}
 # Add your dictionary to the PySimpleGUI themes
-sg.theme_add_new("MyGreen", my_new_theme)
+sg.theme_add_new("MyYellow", my_new_theme)
 
 # Switch your theme to use the newly added one. You can add spaces to make it more readable
-sg.theme("MyGreen")
-font = ("Arial", 18)
+sg.theme("MyYellow")
+font = ("Consolas", 14)
 
 # Graphical User Interface layout #
 MENU_RIGHT_CLICK = ["",["Clear Output", "Version", "Exit"]]
 FILE_TYPES = (("XML (Extensible Markup Language)",".xml"),("CSV (Comma Seperated Value)", ".csv"),("JSON (JavaScript Object Notation)",".json"),("Configuration-File",".config"))
 element_name_in_xml = [""]
 
-layout = [[sg.Text("Program Main",font="Consolas 24 bold underline",justification="center")],
-          [sg.Text("Electronic Data Parser")],
+layout = [[sg.Text("XML Data Parser",font="Consolas 28 bold underline",text_color="#e6d922",justification="center")],
+          [sg.Text("Manipulation of XML files.")],
           [sg.Text("Input:"),sg.Input(size=(43,1),key="-FILE_INPUT-"),sg.FileBrowse(file_types=FILE_TYPES),sg.Button("Read",key="-READ_FILE-")],
+          [sg.Text("Adding Attributes to XML:",text_color="#e6d922")],
           [sg.Text("Add attribute:"),sg.Input(size=(10,1),key="-ATTRIBUTE_NAME_INPUT-"),sg.Text("to element:"),sg.Combo(element_name_in_xml,size=(10,1),key="-ELEMENT_NAME_INPUT-"),sg.Text("with value:"),sg.Input(size=(10,1),key="-ATTRIBUTE_VALUE_INPUT-"),sg.Button("Add",key="-ADD_ATTRIBUTE_BUTTON-")],
+          [sg.HSeparator()],
+          [sg.Text("Deleting Attributes from XML:",text_color="#e6d922")],
           [sg.Text("Del attribute:"),sg.Input(size=(10,1),key="-DEL_ATTRIBUTE_NAME_INPUT-"),sg.Text("from element:"),sg.Combo(element_name_in_xml,size=(10,1),key="-DEL_ELEMENT_NAME_INPUT-"),sg.Button("Delete",key="-DELETE_ATTRIBUTE_BUTTON-")],
-          [sg.Multiline(size=(80,10),key="-INPUT_CONSOLE-")],
-          [sg.Text("Convert the Opened file to a different one:")],
-          [sg.Text("Output:"),sg.Input(size=(36,1),key="-OUTPUT_CONSOLE-"),sg.FolderBrowse(key="-FILE_OUTPUT-"),sg.FileSaveAs(file_types=FILE_TYPES)],
-          [sg.Multiline(size=(80,10))]]
+          [sg.HSeparator()],
+          [sg.Multiline(size=(80,10),key="-OUTPUT_WINDOW-")],
+          [sg.HSeparator()],
+          [sg.Text("Convert the XML file to a different one:",text_color="#e6d922")],
+          [sg.Text("Output:"),sg.Input(size=(36,1),key="-FILE_OUTPUT-"),sg.FileSaveAs(file_types=FILE_TYPES,target="-FILE_OUTPUT-",key="-SAVE_AS_BUTTON-"),sg.Button("Save",key="-SAVE-")],
+          [sg.HSeparator()],
+          [sg.Multiline(size=(80,10))],
+          [sg.Button("Exit",expand_x=True)]]
 
 window = sg.Window("Data Parser",layout,font=font, finalize=True,right_click_menu=MENU_RIGHT_CLICK)
 
@@ -111,7 +128,7 @@ window = sg.Window("Data Parser",layout,font=font, finalize=True,right_click_men
 while True:
     event,values = window.read(timeout=50)
     
-    if event == sg.WIN_CLOSED:
+    if event == sg.WIN_CLOSED or event == "Exit":
         break
     
     # VARIABLES #
@@ -125,19 +142,31 @@ while True:
 
     if event == "-READ_FILE-":
         if len(input_path) == 0 or not input_path.endswith(".xml"):
-            window["-INPUT_CONSOLE-"].update("Error, no Input File selected or wrong filetype")
+            window["-OUTPUT_WINDOW-"].update("Error, no Input File selected or wrong filetype")
         else:
-            window.perform_long_operation(lambda: xml_parser(input_path),"-INPUT_CONSOLE-")
+            window.perform_long_operation(lambda: xml_parser(input_path),"-OUTPUT_WINDOW-")
         
     if event == "-ADD_ATTRIBUTE_BUTTON-":
         if len(input_path) == 0 or not input_path.endswith(".xml"):
-            window["-INPUT_CONSOLE-"].update("Error, no Input File selected or wrong filetype")
+            window["-OUTPUT_WINDOW-"].update("Error, no Input File selected or wrong filetype")
         else:
-            window.perform_long_operation(lambda: xml_add_attribute(input_path,element_name,attribute_name,attribute_value),"-INPUT_CONSOLE-")
+            window.perform_long_operation(lambda: xml_add_attribute(input_path,element_name,attribute_name,attribute_value),"-OUTPUT_WINDOW-")
     if event =="-DELETE_ATTRIBUTE_BUTTON-":
         if len(input_path) == 0 or not input_path.endswith(".xml"):
-            window["-INPUT_CONSOLE-"].update("Empty Inputs, can't delete Attribute.")
+            window["-OUTPUT_WINDOW-"].update("Empty Inputs, can't delete Attribute.")
         else:
-            window.perform_long_operation(lambda: xml_delete_attribute(input_path,del_element_name,del_attribute_name),"-INPUT_CONSOLE-")
+            window.perform_long_operation(lambda: xml_delete_attribute(input_path,del_element_name,del_attribute_name),"-OUTPUT_WINDOW-")
+    if event == "Clear Output":
+        window["-OUTPUT_WINDOW-"].update("")
+    if event == "Version":
+            sg.popup_scrolled(sg.get_versions())
             
-window.close # Kill program
+    if event == "-SAVE-":
+        if len(values["-FILE_OUTPUT-"]) == 0:
+            window["-OUTPUT_WINDOW-"].print("Path to save is empty")
+        elif not output_path.endswith(".csv"):
+            window["-OUTPUT_WINDOW-"].print("Wrong filetype to save as")
+        else:
+            window.perform_long_operation(lambda: conert_xml_to_csv(input_path,output_path),"-OUTPUT_WINDOW-")
+        
+window.close() # Kill program
