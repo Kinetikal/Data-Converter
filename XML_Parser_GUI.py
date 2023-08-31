@@ -1,8 +1,10 @@
 import PySimpleGUI as sg
-import logging, numpy
+import logging, numpy, os
+from pathlib import Path
 import pandas as pd
 import xml.etree.ElementTree as ET
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 # Create a rotating file handler
 file_handler = RotatingFileHandler(filename="GUI_Log.log",
@@ -21,65 +23,170 @@ logger = logging.getLogger()
 logger.addHandler(file_handler)
 logger.setLevel(logging.INFO)  # Set the desired log level
 
-# Function declaration #
-
-def xml_parser(file):
-
-    tree = ET.parse(file)
-    root = tree.getroot()
-
-    xml_string = ET.tostring(root).decode("UTF-8")
-    window["-OUTPUT_WINDOW-"].update(xml_string)
+# Function to read input files with Pandas 
+def read_file_data(file):
     
-    # Get elements in XML File:
-    tags_xml = [elem.tag for elem in root.iter()]
-    tags_to_set = set(tags_xml)
-    tags_to_list = list(tags_to_set)
+    file_suffix_in = Path(file).suffix.upper().strip(".")
     
-    # Add Elements to ComboBox List
-    window["-ELEMENT_NAME_INPUT-"].update(values=tags_to_list)
-    window["-DEL_ELEMENT_NAME_INPUT-"].update(values=tags_to_list)
-    
-def xml_add_attribute(file,element_name,attribute_name,attribute_value):
-    
-    tree = ET.parse(file)
-    root = tree.getroot()
-
-   # Add attribute to specified Element
-    for element in tree.findall(element_name):
-        element.set(attribute_name,attribute_value)
+    if file_suffix_in == "CSV":
+        file_csv = pd.read_csv(file,index_col=None,engine="python")
+        window["-OUTPUT_WINDOW-"].print(file_csv)
         
-        if attribute_name == "id":
-            window.refresh()
-            window["-ATTRIBUTE_VALUE_INPUT-"].update(1)
-            id = 1
-            for element in tree.findall(element_name):
-                element.set("id",str(id))
-                id += 1
+    elif file_suffix_in == "XML":
+        file_xml = pd.read_xml(file)
+        window["-OUTPUT_WINDOW-"].print(file_xml)
+    
+    elif file_suffix_in == "":
+        window["-OUTPUT_WINDOW-"].print(">>> Error Input is empty, cannot read nothing!")
+
+#============ CONVERSION FUNCTION START ============#
+   
+def CSVtoXML(input_path,output_path): # CSV to XML
+    
+    try:
+        if not input_path.lower().endswith(".csv"):
+            window["-OUTPUT_WINDOW-"].print(">>> Input: Expected a CSV File")
+        if not output_path.lower().endswith(".xml"):
+            window["-OUTPUT_WINDOW-"].print(">>> Output: Expected as a XML File")
+        df = pd.read_csv(input_path)
+        df.to_xml(output_path)
+        window["-OUTPUT_WINDOW-"].print(f"Successfully converted {Path(input_path).stem} CSV to {Path(output_path).stem} XML")
+        logger.info(f">>> Successfully converted {Path(input_path).stem} CSV to {Path(output_path).stem} XML")
+    except FileNotFoundError:
+        window["-OUTPUT_WINDOW-"].print(">>> CSV File not found")
+
+def XMLtoCSV(input_path,output_path): # XML to CSV
+    
+    try:
+        if not input_path.lower().endswith(".xml"):
+            window["-OUTPUT_WINDOW-"].print(">>> Input: Expected a XML file")
+        if not output_path.lower().endswith(".csv"):
+            window["-OUTPUT_WINDOW-"].print(">>> Output: Expected as a CSV file")
+        df = pd.read_xml(input_path)
+        df.to_csv(output_path)
+        window["-OUTPUT_WINDOW-"].print(f"Successfully converted {Path(input_path).stem} XML to {Path(output_path).stem} CSV")
+        logger.info(f">>> Successfully converted {Path(input_path).stem} XML to {Path(output_path).stem} CSV")
+    except FileNotFoundError:
+        window["-OUTPUT_WINDOW-"].print(">>> XML File not found")
+
+def CSVtoMarkdown(input_path,output_path): # CSV to Markdown
+    
+    try:
+        if not input_path.lower().endswith(".csv"):
+            window["-OUTPUT_WINDOW-"].print(">>> Input: Expected a CSV file")
+        if not output_path.lower().endswith(".md"):
+            window["-OUTPUT_WINDOW-"].print(">>> Output: Expceted as a Markdown file")
+        df = pd.read_csv(input_path)
+        df.to_markdown(output_path)
+        window["-OUTPUT_WINDOW-"].print(f"Successfully converted {Path(input_path).stem} XML to {Path(output_path).stem} Markdown")
+        logger.info(f">>> Successfully converted {Path(input_path).stem} CSV to {Path(output_path).stem} Markdown")
+    except FileNotFoundError:
+        window["-OUTPUT_WINDOW-"].print(">>> CSV File not found")
+        
+def XMLtoMarkdown(input_path,output_path): # XML to Markdown
+    
+    try:
+        if not input_path.lower().endswith(".xml"):
+            window["-OUTPUT_WINDOW-"].print(">>> Input: Expected a CSV file")
+        if not output_path.lower().endswith(".md"):
+            window["-OUTPUT_WINDOW-"].print(">>> Output: Expceted as a Markdown file")
+        df = pd.read_csv(input_path)
+        df.to_markdown(output_path)
+        window["-OUTPUT_WINDOW-"].print(f"Successfully converted {Path(input_path).stem} XML to {Path(output_path).stem} Markdown")
+        logger.info(f">>> Successfully converted {Path(input_path).stem} XML to {Path(output_path).stem} Markdown")
+    except FileNotFoundError:
+        window["-OUTPUT_WINDOW-"].print(">>> XML File not found")
+        
+def JSONtoCSV(input_path,output_path): # XML to CSV
+    
+    try:
+        if not input_path.lower().endswith(".json"):
+            window["-OUTPUT_WINDOW-"].print(">>> Input: Expected a JSON file")
+        if not output_path.lower().endswith(".csv"):
+            window["-OUTPUT_WINDOW-"].print(">>> Output: Expected as a CSV file")
+        df = pd.read_json(input_path)
+        df.to_csv(output_path)
+        window["-OUTPUT_WINDOW-"].print(f"Successfully converted {Path(input_path).stem} JSON to {Path(output_path).stem} CSV")
+        logger.info(f">>> Successfully converted {Path(input_path).stem} JSON to {Path(output_path).stem} CSV")
+    except FileNotFoundError:
+        window["-OUTPUT_WINDOW-"].print(">>> JSON File not found")
+
+def JSONtoXML(input_path,output_path): # XML to CSV
+    
+    try:
+        if not input_path.lower().endswith(".json"):
+            window["-OUTPUT_WINDOW-"].print(">>> Input: Expected a JSON file")
+        if not output_path.lower().endswith(".xml"):
+            window["-OUTPUT_WINDOW-"].print(">>> Output: Expected as a XML file")
+        df = pd.read_json(input_path)
+        df.to_xml(output_path)
+        window["-OUTPUT_WINDOW-"].print(f"Successfully converted {Path(input_path).stem} JSON to {Path(output_path).stem} XML")
+        logger.info(f">>> Successfully converted {Path(input_path).stem} JSON to {Path(output_path).stem} XML")
+    except FileNotFoundError:
+        window["-OUTPUT_WINDOW-"].print(">>> JSON File not found")
+
+def XMLtoJSON(input_path,output_path): # XML to CSV
+    
+    try:
+        if not input_path.lower().endswith(".xml"):
+            window["-OUTPUT_WINDOW-"].print(">>> Input: Expected a XML file")
+        if not output_path.lower().endswith(".json"):
+            window["-OUTPUT_WINDOW-"].print(">>> Output: Expected as a JSON file")
+        df = pd.read_xml(input_path)
+        df.to_json(output_path)
+        window["-OUTPUT_WINDOW-"].print(f"Successfully converted {Path(input_path).stem} XML to {Path(output_path).stem} JSON")
+        logger.info(f">>> Successfully converted {Path(input_path).stem} XML to {Path(output_path).stem} JSON")
+    except FileNotFoundError:
+        window["-OUTPUT_WINDOW-"].print(">>> XML File not found")
+
+def CSVtoJSON(input_path,output_path): # XML to CSV
+    
+    try:
+        if not input_path.lower().endswith(".csv"):
+            window["-OUTPUT_WINDOW-"].print(">>> Input: Expected a CSV file")
+        if not output_path.lower().endswith(".json"):
+            window["-OUTPUT_WINDOW-"].print(">>> Output: Expected as a JSON file")
+        df = pd.read_csv(input_path)
+        df.to_json(output_path)
+        window["-OUTPUT_WINDOW-"].print(f"Successfully converted {Path(input_path).stem} CSV to {Path(output_path).stem} JSON")
+        logger.info(f">>> Successfully converted {Path(input_path).stem} CSV to {Path(output_path).stem} JSON")
+    except FileNotFoundError:
+        window["-OUTPUT_WINDOW-"].print(">>> CSV File not found")
+        
+#============ CONVERSION FUNCTION END ============#
+
+#============ CONVERSION OF FILES WITH ASSERTION MAIN ============#
+def datatype_conversion(input_path,output_path):
+    
+    file_suffix_in = Path(input_path).suffix.upper().strip(".") # File extension input path
+    file_suffix_out = Path(output_path).suffix.upper().strip(".") # File extension output path
+    
+    try:
+        if file_suffix_in == "CSV" and file_suffix_out == "XML":
+            CSVtoXML(input_path, output_path)
+        elif file_suffix_in == "XML" and file_suffix_out == "CSV":
+            XMLtoCSV(input_path, output_path)
+        elif file_suffix_in == "XML" and file_suffix_out == "MD":
+            XMLtoMarkdown(input_path,output_path)
+        elif file_suffix_in == "CSV" and file_suffix_out == "MD":
+            CSVtoMarkdown(input_path,output_path)
+        elif file_suffix_in == "JSON" and file_suffix_out == "CSV":
+            JSONtoCSV(input_path,output_path)
+        elif file_suffix_in == "JSON" and file_suffix_out == "XML":
+            JSONtoXML(input_path,output_path)
+        elif file_suffix_in == "XML" and file_suffix_out == "JSON":
+            XMLtoJSON(input_path,output_path)
+        elif file_suffix_in == "CSV" and file_suffix_out == "JSON":
+            CSVtoJSON(input_path,output_path)
+        elif file_suffix_in == "":
+            window["-OUTPUT_WINDOW-"].print(">>> File not found, check input file!")
+        elif file_suffix_out == "":
+            window["-OUTPUT_WINDOW-"].print(">>> Cannot save, output file not set!")
         else:
-            pass
-        
-    tree.write(file)
+            window["-OUTPUT_WINDOW-"].print(">>> Unsupported conversion!")
+    except FileNotFoundError:
+            window["-OUTPUT_WINDOW-"].print(f">>> {file_suffix_in} File not found!")
 
-def xml_delete_attribute(file,element_name,attribute_name):
-    
-    tree = ET.parse(file)
-    root = tree.getroot()
-    
-    for element in tree.findall(element_name):
-        del(element.attrib[attribute_name])
-    
-    tree.write(file)
-    window["-DEL_ELEMENT_NAME_INPUT-"].update("")
-    window["-DEL_ATTRIBUTE_NAME_INPUT-"]
-
-def conert_xml_to_csv(file,output):
-    df = pd.read_xml(file)
-    df.to_csv(output)
-    
-#def csv_parser()
-#def json_parser()
-#def config_parser()
 # Graphical User Interface settings #
 
 # Add your new theme colors and settings
@@ -88,8 +195,8 @@ my_new_theme = {"BACKGROUND": "#3d3f46",
                 "INPUT": "#1c1e23",
                 "TEXT_INPUT": "#d2d2d3",
                 "SCROLL": "#1c1e23",
-                "BUTTON": ("#e6d922", "#313641"),
-                "PROGRESS": ("#e6d922", "#4a6ab3"),
+                "BUTTON": ("#1d77eb", "#313641"),
+                "PROGRESS": ("#1d77eb", "#4a6ab3"),
                 "BORDER": 1,
                 "SLIDER_DEPTH": 0,
                 "PROGRESS_DEPTH": 0}
@@ -98,35 +205,28 @@ sg.theme_add_new("MyYellow", my_new_theme)
 
 # Switch your theme to use the newly added one. You can add spaces to make it more readable
 sg.theme("MyYellow")
-font = ("Consolas", 14)
+font = ("Consolas", 16)
 
 # Graphical User Interface layout #
 MENU_RIGHT_CLICK = ["",["Clear Output", "Version", "Exit"]]
-FILE_TYPES = (("XML (Extensible Markup Language)",".xml"),("CSV (Comma Seperated Value)", ".csv"),("JSON (JavaScript Object Notation)",".json"),("Configuration-File",".config"))
-element_name_in_xml = [""]
+FILE_TYPES_OUTPUT = (("CSV (Comma Seperated Value)", ".csv"),("XML (Extensible Markup Language)",".xml"),("JSON (JavaScript Object Notation)",".json"),("Markdown",".md"),("Configuration-File",".config"))
+FILE_TYPES_INPUT = (("CSV (Comma Seperated Value)", ".csv"),("XML (Extensible Markup Language)",".xml"),("JSON (JavaScript Object Notation)",".json"),("Configuration-File",".config"))
 
-layout = [[sg.Text("XML Data Parser",font="Consolas 28 bold underline",text_color="#e6d922",justification="center")],
-          [sg.Text("Manipulation of XML files.")],
-          [sg.Text("Input:"),sg.Input(size=(43,1),key="-FILE_INPUT-"),sg.FileBrowse(file_types=FILE_TYPES),sg.Button("Read",key="-READ_FILE-")],
-          [sg.Text("Adding Attributes to XML:",text_color="#e6d922")],
-          [sg.Text("Add attribute:"),sg.Input(size=(10,1),key="-ATTRIBUTE_NAME_INPUT-"),sg.Text("to element:"),sg.Combo(element_name_in_xml,size=(10,1),key="-ELEMENT_NAME_INPUT-"),sg.Text("with value:"),sg.Input(size=(10,1),key="-ATTRIBUTE_VALUE_INPUT-"),sg.Button("Add",key="-ADD_ATTRIBUTE_BUTTON-")],
-          [sg.HSeparator()],
-          [sg.Text("Deleting Attributes from XML:",text_color="#e6d922")],
-          [sg.Text("Del attribute:"),sg.Input(size=(10,1),key="-DEL_ATTRIBUTE_NAME_INPUT-"),sg.Text("from element:"),sg.Combo(element_name_in_xml,size=(10,1),key="-DEL_ELEMENT_NAME_INPUT-"),sg.Button("Delete",key="-DELETE_ATTRIBUTE_BUTTON-")],
-          [sg.HSeparator()],
-          [sg.Multiline(size=(80,10),key="-OUTPUT_WINDOW-")],
-          [sg.HSeparator()],
-          [sg.Text("Convert the XML file to a different one:",text_color="#e6d922")],
-          [sg.Text("Output:"),sg.Input(size=(36,1),key="-FILE_OUTPUT-"),sg.FileSaveAs(file_types=FILE_TYPES,target="-FILE_OUTPUT-",key="-SAVE_AS_BUTTON-"),sg.Button("Save",key="-SAVE-")],
-          [sg.HSeparator()],
-          [sg.Multiline(size=(80,10))],
+
+layout = [[sg.Text("Data Parser and Converter",font="Consolas 28 bold underline",text_color="#1d77eb")],
+          [sg.Text()],
+          [sg.Text("Select an input file for conversion:")],
+          [sg.Text("Input:"),sg.Input(size=(43,1),key="-FILE_INPUT-"),sg.FileBrowse(file_types=FILE_TYPES_INPUT),sg.Button("Read",key="-READ_FILE-")],
+          [sg.Text("Convert the input file to a different one:")],
+          [sg.Text("Output:"),sg.Input(size=(39,1),key="-FILE_OUTPUT-"),sg.FileSaveAs(file_types=FILE_TYPES_OUTPUT,target="-FILE_OUTPUT-",key="-SAVE_AS_BUTTON-"),sg.Button("Save",key="-SAVE-")],
+          [sg.Multiline(size=(80,15),key="-OUTPUT_WINDOW-")],
           [sg.Button("Exit",expand_x=True)]]
 
-window = sg.Window("Data Parser",layout,font=font, finalize=True,right_click_menu=MENU_RIGHT_CLICK)
+window = sg.Window("Data Parser and Converter",layout,font=font, finalize=True,right_click_menu=MENU_RIGHT_CLICK)
 
 # Main Window events and functionality #
 while True:
-    event,values = window.read(timeout=50)
+    event,values = window.read()
     
     if event == sg.WIN_CLOSED or event == "Exit":
         break
@@ -134,39 +234,10 @@ while True:
     # VARIABLES #
     input_path = values["-FILE_INPUT-"]
     output_path = values["-FILE_OUTPUT-"]
-    element_name = values["-ELEMENT_NAME_INPUT-"]
-    del_element_name = values["-DEL_ELEMENT_NAME_INPUT-"]
-    del_attribute_name = values["-DEL_ATTRIBUTE_NAME_INPUT-"]
-    attribute_name = values["-ATTRIBUTE_NAME_INPUT-"]
-    attribute_value = values["-ATTRIBUTE_VALUE_INPUT-"]
-
+    
     if event == "-READ_FILE-":
-        if len(input_path) == 0 or not input_path.endswith(".xml"):
-            window["-OUTPUT_WINDOW-"].update("Error, no Input File selected or wrong filetype")
-        else:
-            window.perform_long_operation(lambda: xml_parser(input_path),"-OUTPUT_WINDOW-")
-        
-    if event == "-ADD_ATTRIBUTE_BUTTON-":
-        if len(input_path) == 0 or not input_path.endswith(".xml"):
-            window["-OUTPUT_WINDOW-"].update("Error, no Input File selected or wrong filetype")
-        else:
-            window.perform_long_operation(lambda: xml_add_attribute(input_path,element_name,attribute_name,attribute_value),"-OUTPUT_WINDOW-")
-    if event =="-DELETE_ATTRIBUTE_BUTTON-":
-        if len(input_path) == 0 or not input_path.endswith(".xml"):
-            window["-OUTPUT_WINDOW-"].update("Empty Inputs, can't delete Attribute.")
-        else:
-            window.perform_long_operation(lambda: xml_delete_attribute(input_path,del_element_name,del_attribute_name),"-OUTPUT_WINDOW-")
-    if event == "Clear Output":
-        window["-OUTPUT_WINDOW-"].update("")
-    if event == "Version":
-            sg.popup_scrolled(sg.get_versions())
-            
+        window.perform_long_operation(lambda: read_file_data(input_path),"-OUTPUT_WINDOW-")
     if event == "-SAVE-":
-        if len(values["-FILE_OUTPUT-"]) == 0:
-            window["-OUTPUT_WINDOW-"].print("Path to save is empty")
-        elif not output_path.endswith(".csv"):
-            window["-OUTPUT_WINDOW-"].print("Wrong filetype to save as")
-        else:
-            window.perform_long_operation(lambda: conert_xml_to_csv(input_path,output_path),"-OUTPUT_WINDOW-")
-        
+        window.perform_long_operation(lambda: datatype_conversion(input_path,output_path),"-OUTPUT_WINDOW-")
+    
 window.close() # Kill program
