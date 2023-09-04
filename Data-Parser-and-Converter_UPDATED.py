@@ -34,6 +34,9 @@ logger.setLevel(logging.INFO)  # Set the desired log level
 # Define a mapping of file extensions to corresponding read and write functions
 CONVERSION_FUNCTIONS = {
     ("csv", "xml"): (pd.read_csv, pd.DataFrame.to_xml),
+    ("csv", "html"): (pd.read_csv, pd.DataFrame.to_html),
+    ("xml", "html"): (pd.read_xml, pd.DataFrame.to_html),
+    ("json", "html"): (pd.read_json, pd.DataFrame.to_html),
     ("xml", "csv"): (pd.read_xml, pd.DataFrame.to_csv),
     ("csv","md"): (pd.read_csv,pd.DataFrame.to_markdown),
     ("xml", "md"): (pd.read_xml, pd.DataFrame.to_markdown),
@@ -112,7 +115,7 @@ font = ("Arial", 16)
 
 # Graphical User Interface layout #
 MENU_RIGHT_CLICK = ["",["Clear Output", "Version", "Exit"]]
-FILE_TYPES_OUTPUT = (("CSV (Comma Seperated Value)", ".csv"),("XML (Extensible Markup Language)",".xml"),("JSON (JavaScript Object Notation)",".json"),("Markdown",".md"))
+FILE_TYPES_OUTPUT = (("CSV (Comma Seperated Value)", ".csv"),("XML (Extensible Markup Language)",".xml"),("JSON (JavaScript Object Notation)",".json"),("Markdown",".md"),("Hypertext Markup Language", ".html"))
 FILE_TYPES_INPUT = (("CSV (Comma Seperated Value)", ".csv"),("XML (Extensible Markup Language)",".xml"),("JSON (JavaScript Object Notation)",".json"))
 
 layout_title = [[sg.Text("Data Parser and Converter",font="Arial 28 bold underline",text_color="#e6d922")],
@@ -123,7 +126,7 @@ layout_inputs_and_buttons = [[sg.Text("Select an input file for conversion:")],
           [sg.Text("Output:"),sg.Input(size=(42,1),key="-FILE_OUTPUT-"),sg.FileSaveAs(button_text="Save as",file_types=FILE_TYPES_OUTPUT,target="-FILE_OUTPUT-",key="-SAVE_AS_BUTTON-"),sg.Button("Convert",key="-SAVE-")],
           [sg.Text("Data Properties:")],
           [sg.Text("Columns:"),sg.Combo(values="",key="-COLUMNS-",size=(10,1))],
-          [sg.Multiline(size=(80,15),key="-OUTPUT_WINDOW-")],
+          [sg.Multiline(size=(80,20),key="-OUTPUT_WINDOW-")],
           [sg.Button("Exit",expand_x=True)]]
 
 layout = [[sg.Column(layout_title,justification="center")],
