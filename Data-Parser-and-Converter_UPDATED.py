@@ -1,13 +1,21 @@
 import PySimpleGUI as sg
-import logging, numpy, os
+import logging, numpy, os, shutil
 from pathlib import Path
 import pandas as pd
-import xml.etree.ElementTree as ET
+from os.path import isfile, join
+from os import listdir
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
+def create_folder():
+    try:
+        os.mkdir("Logs")
+    except FileExistsError:
+        pass
+create_folder()
+
 # Create a rotating file handler
-file_handler = RotatingFileHandler(filename="GUI_Log.log",
+file_handler = RotatingFileHandler(filename="Logs/GUI_Log.log",
                                    maxBytes=25 * 1024 * 1024,  # Max File Size: 25 MB
                                    backupCount=2,  # Number of backup files to keep
                                    encoding="utf-8",  # Specify the encoding if needed
@@ -68,6 +76,10 @@ def read_file_data(file):
     elif file_suffix_in == "XML":
         file_xml = pd.read_xml(file)
         window["-OUTPUT_WINDOW-"].print(file_xml)
+        
+    elif file_suffix_in == "JSON":
+        file_json = pd.read_json(file)
+        window["-OUTPUT_WINDOW-"].print(file_json)
     
     elif file_suffix_in == "":
         window["-OUTPUT_WINDOW-"].print(">>> Error Input is empty, cannot read nothing!")
@@ -75,11 +87,11 @@ def read_file_data(file):
 # Graphical User Interface settings #
 
 # Add your new theme colors and settings
-my_new_theme = {"BACKGROUND": "#3d3f46",
+my_new_theme = {"BACKGROUND": "#1c1e23",
                 "TEXT": "#d2d2d3",
-                "INPUT": "#1c1e23",
+                "INPUT": "#3d3f46",
                 "TEXT_INPUT": "#d2d2d3",
-                "SCROLL": "#1c1e23",
+                "SCROLL": "#3d3f46",
                 "BUTTON": ("#e6d922", "#313641"),
                 "PROGRESS": ("#e6d922", "#4a6ab3"),
                 "BORDER": 1,
@@ -90,22 +102,24 @@ sg.theme_add_new("MyYellow", my_new_theme)
 
 # Switch your theme to use the newly added one. You can add spaces to make it more readable
 sg.theme("MyYellow")
-font = ("Consolas", 16)
+font = ("Arial", 16)
 
 # Graphical User Interface layout #
 MENU_RIGHT_CLICK = ["",["Clear Output", "Version", "Exit"]]
-FILE_TYPES_OUTPUT = (("CSV (Comma Seperated Value)", ".csv"),("XML (Extensible Markup Language)",".xml"),("JSON (JavaScript Object Notation)",".json"),("Markdown",".md"),("Configuration-File",".config"))
-FILE_TYPES_INPUT = (("CSV (Comma Seperated Value)", ".csv"),("XML (Extensible Markup Language)",".xml"),("JSON (JavaScript Object Notation)",".json"),("Configuration-File",".config"))
+FILE_TYPES_OUTPUT = (("CSV (Comma Seperated Value)", ".csv"),("XML (Extensible Markup Language)",".xml"),("JSON (JavaScript Object Notation)",".json"),("Markdown",".md"))
+FILE_TYPES_INPUT = (("CSV (Comma Seperated Value)", ".csv"),("XML (Extensible Markup Language)",".xml"),("JSON (JavaScript Object Notation)",".json"))
 
-
-layout = [[sg.Text("Data Parser and Converter",font="Consolas 28 bold underline",text_color="#1d77eb")],
-          [sg.Text()],
-          [sg.Text("Select an input file for conversion:")],
+layout_title = [[sg.Text("Data Parser and Converter",font="Arial 28 bold underline",text_color="#e6d922")],
+                [sg.Text()]]
+layout_inputs_and_buttons = [[sg.Text("Select an input file for conversion:")],
           [sg.Text("Input:"),sg.Input(size=(43,1),key="-FILE_INPUT-"),sg.FileBrowse(file_types=FILE_TYPES_INPUT),sg.Button("Read",key="-READ_FILE-")],
           [sg.Text("Convert the input file to a different one:")],
-          [sg.Text("Output:"),sg.Input(size=(42,1),key="-FILE_OUTPUT-"),sg.FileSaveAs(button_text="Save as",file_types=FILE_TYPES_OUTPUT,target="-FILE_OUTPUT-",key="-SAVE_AS_BUTTON-"),sg.Button("Save",key="-SAVE-")],
+          [sg.Text("Output:"),sg.Input(size=(42,1),key="-FILE_OUTPUT-"),sg.FileSaveAs(button_text="Save as",file_types=FILE_TYPES_OUTPUT,target="-FILE_OUTPUT-",key="-SAVE_AS_BUTTON-"),sg.Button("Convert",key="-SAVE-")],
           [sg.Multiline(size=(80,15),key="-OUTPUT_WINDOW-")],
           [sg.Button("Exit",expand_x=True)]]
+
+layout = [[sg.Column(layout_title,justification="center")],
+          [sg.Column(layout_inputs_and_buttons)]]
 
 window = sg.Window("Data Parser and Converter",layout,font=font, finalize=True,right_click_menu=MENU_RIGHT_CLICK)
 
@@ -126,6 +140,7 @@ while True:
         window.perform_long_operation(lambda: read_file_data(input_path), "-OUTPUT_WINDOW-")
     elif event == "-SAVE-":
         window.perform_long_operation(lambda: convert_files(input_path, output_path, input_ext, output_ext), "-OUTPUT_WINDOW-")
+    elif event == "Clear Output":
+        window["-OUTPUT_WINDOW-"].update("")
 
-    
 window.close() # Kill program
