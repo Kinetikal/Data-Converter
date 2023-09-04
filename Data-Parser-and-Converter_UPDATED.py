@@ -119,13 +119,15 @@ FILE_TYPES_OUTPUT = (("CSV (Comma Seperated Value)", ".csv"),("XML (Extensible M
 FILE_TYPES_INPUT = (("CSV (Comma Seperated Value)", ".csv"),("XML (Extensible Markup Language)",".xml"),("JSON (JavaScript Object Notation)",".json"))
 
 layout_title = [[sg.Text("Data Parser and Converter",font="Arial 28 bold underline",text_color="#e6d922")],
+                [sg.Text("A tool built with Python and the PySimpleGUI module\nfor conversion of common file extensions to other.")],
                 [sg.Text()]]
 layout_inputs_and_buttons = [[sg.Text("Select an input file for conversion:")],
           [sg.Text("Input:"),sg.Input(size=(43,1),key="-FILE_INPUT-"),sg.FileBrowse(file_types=FILE_TYPES_INPUT),sg.Button("Read",key="-READ_FILE-")],
           [sg.Text("Convert the input file to a different one:")],
           [sg.Text("Output:"),sg.Input(size=(42,1),key="-FILE_OUTPUT-"),sg.FileSaveAs(button_text="Save as",file_types=FILE_TYPES_OUTPUT,target="-FILE_OUTPUT-",key="-SAVE_AS_BUTTON-"),sg.Button("Convert",key="-SAVE-")],
           [sg.Text("Data Properties:")],
-          [sg.Text("Columns:"),sg.Combo(values="",key="-COLUMNS-",size=(10,1))],
+          [sg.Text("Columns:"),sg.Combo(values="",key="-COLUMNS-",size=(10,1)),sg.Text("To get the Column names, read a file first.")],
+          [sg.HSeparator()],
           [sg.Multiline(size=(80,20),key="-OUTPUT_WINDOW-")],
           [sg.Button("Exit",expand_x=True)]]
 
