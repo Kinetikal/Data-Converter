@@ -68,24 +68,30 @@ def convert_files(input_path, output_path, input_ext, output_ext):
 def read_file_data(file):
     
     file_suffix_in = Path(file).suffix.upper().strip(".")
-    
+    df = None
     if file_suffix_in == "CSV":
-        file_csv = pd.read_csv(file,index_col=None,engine="python")
-        window["-OUTPUT_WINDOW-"].print(file_csv)
+        df = pd.read_csv(file,index_col=None,engine="python")
+        window["-OUTPUT_WINDOW-"].print(df)
         
     elif file_suffix_in == "XML":
-        file_xml = pd.read_xml(file)
-        window["-OUTPUT_WINDOW-"].print(file_xml)
+        df = pd.read_xml(file)
+        window["-OUTPUT_WINDOW-"].print(df)
         
     elif file_suffix_in == "JSON":
-        file_json = pd.read_json(file)
-        window["-OUTPUT_WINDOW-"].print(file_json)
+        df = pd.read_json(file)
+        window["-OUTPUT_WINDOW-"].print(df)
     
     elif file_suffix_in == "":
         window["-OUTPUT_WINDOW-"].print(">>> Error Input is empty, cannot read nothing!")
-
+        
+    if df is not None:
+        column_names = df.columns.tolist()
+        window["-COLUMNS-"].update(values=column_names)
+        return df, column_names
+    else:
+        return None, []
+    
 # Graphical User Interface settings #
-
 # Add your new theme colors and settings
 my_new_theme = {"BACKGROUND": "#1c1e23",
                 "TEXT": "#d2d2d3",
@@ -115,6 +121,8 @@ layout_inputs_and_buttons = [[sg.Text("Select an input file for conversion:")],
           [sg.Text("Input:"),sg.Input(size=(43,1),key="-FILE_INPUT-"),sg.FileBrowse(file_types=FILE_TYPES_INPUT),sg.Button("Read",key="-READ_FILE-")],
           [sg.Text("Convert the input file to a different one:")],
           [sg.Text("Output:"),sg.Input(size=(42,1),key="-FILE_OUTPUT-"),sg.FileSaveAs(button_text="Save as",file_types=FILE_TYPES_OUTPUT,target="-FILE_OUTPUT-",key="-SAVE_AS_BUTTON-"),sg.Button("Convert",key="-SAVE-")],
+          [sg.Text("Data Properties:")],
+          [sg.Text("Columns:"),sg.Combo(values="",key="-COLUMNS-",size=(10,1))],
           [sg.Multiline(size=(80,15),key="-OUTPUT_WINDOW-")],
           [sg.Button("Exit",expand_x=True)]]
 
