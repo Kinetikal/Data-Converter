@@ -1,8 +1,8 @@
-# XML-Data-Parser
-XML Parser with a GUI built with Python and the PySimpleGUI Module.
+# Data Converter
+Data Converter with a GUI built with Python and the PySimpleGUI Module.
 
 Work in progress still...
 Supported File Extensions: ("CSV (Comma Seperated Value)", ".csv"),("XML (Extensible Markup Language)",".xml"),("JSON (JavaScript Object Notation)",".json"),("Markdown",".md"),("Configuration-File",".config")
 
 ## Screenshots
-![2023-08-31 12_45_37-Data Parser and Converter](https://github.com/Kinetikal/Data-Parser-and-Converter/assets/93329694/a617997a-e26e-4bf8-8a85-20118a4425f3)
+![image](https://github.com/Kinetikal/Data-Converter/assets/93329694/29db837a-8da2-422a-9f3d-8588ebb433a8)
