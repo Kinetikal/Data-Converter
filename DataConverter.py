@@ -55,35 +55,29 @@ def read_file_data(file):
         file_suffix_in_input = Path(file).suffix.upper().strip(".")
         df = None
         
-        with open(file, 'r', newline='') as file:
-            # Use the Sniffer class to automatically detect the delimiter
-            sniffer = csv.Sniffer()
-            sample_data = file.read(1024)  # Read a sample of the file to determine the delimiter
-            dialect = sniffer.sniff(sample_data)
-            separator = dialect.delimiter
+        if file_suffix_in_input == "CSV":
+            with open(file, 'r', newline='') as csv_file:
+                # Use the Sniffer class to automatically detect the delimiter
+                sniffer = csv.Sniffer()
+                sample_data = csv_file.read(1024)  # Read a sample of the file to determine the delimiter
+                dialect = sniffer.sniff(sample_data)
+                separator = dialect.delimiter
+                print(f"Seperator: {separator}")
             
-            print(f"Seperator: {separator}")
-            
-            if file_suffix_in_input == "CSV":
-                df = pd.read_csv(file, sep=separator, index_col=None, engine="python")
-                window["-OUTPUT_WINDOW-"].update(df,text_color="white")
-
-
-            elif file_suffix_in_input == "XML":
-                df = pd.read_xml(file)
-                window["-OUTPUT_WINDOW-"].update(df,text_color="white")
-
-            elif file_suffix_in_input == "JSON":
-                df = pd.read_json(file)
-                window["-OUTPUT_WINDOW-"].update(df,text_color="white")
-
-            elif file_suffix_in_input == "XLSX":
-                df = pd.read_excel(file)
-                window["-OUTPUT_WINDOW-"].update(df,text_color="white")
-
-            elif file_suffix_in_input == "":
-                window["-OUTPUT_WINDOW-"].update(">>> Error Input is empty, cannot read nothing!",text_color="#ff4545")
-
+        if file_suffix_in_input == "CSV":
+            df = pd.read_csv(file, sep=separator, index_col=None, engine="python")
+            window["-OUTPUT_WINDOW-"].update(df,text_color="white")
+        elif file_suffix_in_input == "XML":
+            df = pd.read_xml(file)
+            window["-OUTPUT_WINDOW-"].update(df,text_color="white")
+        elif file_suffix_in_input == "JSON":
+            df = pd.read_json(file)
+            window["-OUTPUT_WINDOW-"].update(df,text_color="white")
+        elif file_suffix_in_input == "XLSX":
+            df = pd.read_excel(file)
+            window["-OUTPUT_WINDOW-"].update(df,text_color="white")
+        elif file_suffix_in_input == "":
+            window["-OUTPUT_WINDOW-"].update(">>> Error Input is empty, cannot read nothing!",text_color="#ff4545")
         if df is not None:
             column_names = df.columns.tolist()
             window["-COLUMNS-"].update(values=column_names)
@@ -96,11 +90,11 @@ def read_file_data(file):
 # ====== Graphical User Interface settings ====== #
 
 # Add your new theme colors and settings
-my_new_theme = {"BACKGROUND": "#292929",
+my_new_theme = {"BACKGROUND": "#191e26",
                 "TEXT": "#d2d2d3",
-                "INPUT": "#444444",
+                "INPUT": "#292a2e",
                 "TEXT_INPUT": "#d2d2d3",
-                "SCROLL": "#444444",
+                "SCROLL": "#292a2e",
                 "BUTTON": ("#ff793f", "#313641"),
                 "PROGRESS": ("#ff793f", "#4a6ab3"),
                 "BORDER": 1,
