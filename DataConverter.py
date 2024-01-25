@@ -38,20 +38,21 @@ CONVERSION_FUNCTIONS = {
 def convert_files(input_path, output_path, input_ext, output_ext):
     
     try:
-        read_func, write_func = CONVERSION_FUNCTIONS.get(
-            (input_ext, output_ext), (None, None))
+        read_func, write_func = CONVERSION_FUNCTIONS.get((input_ext, output_ext), (None, None))
+        
         if read_func is None or write_func is None:
             window["-OUTPUT_WINDOW-"].update(">>> Unsupported conversion!",text_color="#ff4545")
+            
         df = read_func(input_path)
         write_func(df, output_path)
         window["-OUTPUT_WINDOW-"].update(f"Successfully converted {Path(input_path).stem} {input_ext.upper()} to {Path(output_path).stem} {output_ext.upper()}",text_color="#51e98b")
+        
     except FileNotFoundError:
         window["-OUTPUT_WINDOW-"].update(f">>> {input_ext.upper()} File not found!",text_color="#ff4545")
         
 # Function to read input files with Pandas
 def read_file_data(file):
     try:
-        
         file_suffix_in_input = Path(file).suffix.upper().strip(".")
         df = None
         
@@ -84,6 +85,7 @@ def read_file_data(file):
             return df, column_names
         else:
             return None, []
+        
     except Exception as e:
         window["-OUTPUT_WINDOW-"].update(f"ERROR: {e}",text_color="#ff4545")
 
@@ -113,18 +115,27 @@ FILE_TYPES_OUTPUT = (("XML (Extensible Markup Language)", ".xml"), ("CSV (Comma 
 layout_title = [[sg.Text("Pandas Data Converter", font="Arial 28 bold underline", text_color="#ff793f")],
                 [sg.Text("A tool built with Python and the PySimpleGUI module\nfor conversion of common file extensions to other.")],
                 [sg.Text()]]
-layout_inputs_and_buttons = [[sg.Text("Select an input file for conversion:")],
+
+layout_inputs = [[sg.Text("Select an input file for conversion:")],
                              [sg.Text("Input:"), sg.Input(size=(30, 1), key="-FILE_INPUT-"), sg.FileBrowse(file_types=FILE_TYPES_INPUT, size=(7, 1)), sg.Button("Read", size=(7, 1), key="-READ_FILE-")],
                              [sg.Text("Convert input file to a different one:")],
-                             [sg.Text("Output:"), sg.Input(size=(29, 1), key="-FILE_OUTPUT-"), sg.FileSaveAs(button_text="Save as",file_types=FILE_TYPES_OUTPUT, target="-FILE_OUTPUT-", key="-SAVE_AS_BUTTON-"), sg.Button("Convert", key="-SAVE-")],
-                             [sg.Text("Data Properties:")],
-                             [sg.Text("Columns:"), sg.Combo(values="", key="-COLUMNS-", size=(10, 1)),sg.Text("To get the Column names, read a file first.")],
-                             [sg.HSeparator()],
-                             [sg.Multiline(size=(62, 10), key="-OUTPUT_WINDOW-")],
+                             [sg.Text("Output:"), sg.Input(size=(29, 1), key="-FILE_OUTPUT-"), sg.FileSaveAs(button_text="Save as", size=(7,1), file_types=FILE_TYPES_OUTPUT, target="-FILE_OUTPUT-", key="-SAVE_AS_BUTTON-"), sg.Button("Convert", key="-SAVE-")],
+                             [sg.Text()]]
+
+layout_data_properties = [[sg.Text("Columns:"),sg.Combo(values="",key="-COLUMNS-",size=(10, 1)),sg.Text("To get the Column names, read a file first.")]]
+
+layout_output_and_exit = [[sg.Multiline(size=(54, 12), key="-OUTPUT_WINDOW-")],
                              [sg.Button("Exit", expand_x=True)]]
 
+layout_checkbox = [[sg.Checkbox(text="Show Data Properties",default=False,key="-CHECKBOX_DATA_PROPERTIES-",enable_events=True),sg.Checkbox(text="Show Output Window",default=False,key="-CHECKBOX_SHOW_OUTPUT-",enable_events=True)],
+                    [sg.pin(sg.Column(layout_data_properties,key="-DATA_PROPERTIES_FRAME-",visible=False))],
+                    [sg.pin(sg.Frame("Output Window",layout_output_and_exit,key="-OUTPUT_WINDOW_FRAME-",visible=False))]]
+
+
 layout = [[sg.Column(layout_title, justification="center")],
-          [sg.Column(layout_inputs_and_buttons)]]
+          [sg.Column(layout_inputs)],
+          [sg.Column(layout_checkbox)]]
+# Graphical User Interface layout END#
 
 window = sg.Window("Data Parser and Converter", layout, font=font, finalize=True, right_click_menu=MENU_RIGHT_CLICK)
 
@@ -133,6 +144,7 @@ window = sg.Window("Data Parser and Converter", layout, font=font, finalize=True
 while True:
     
     event, values = window.read()
+    #window["-OUTPUT_WINDOW-"].update(f"Event: {event}  ||  Values: {values}")
     if event == sg.WIN_CLOSED or event == "Exit":
         break
 
@@ -142,11 +154,23 @@ while True:
     input_ext = Path(input_path).suffix.lower().strip(".")
     output_ext = Path(output_path).suffix.lower().strip(".")
 
+    if event == "-CHECKBOX_DATA_PROPERTIES-":
+        if values["-CHECKBOX_DATA_PROPERTIES-"]:
+            window["-DATA_PROPERTIES_FRAME-"].update(visible=True)
+        else:
+            window["-DATA_PROPERTIES_FRAME-"].update(visible=False)
+            
+    if event == "-CHECKBOX_SHOW_OUTPUT-":
+        if values["-CHECKBOX_SHOW_OUTPUT-"]:
+            window["-OUTPUT_WINDOW_FRAME-"].update(visible=True)
+        else:
+            window["-OUTPUT_WINDOW_FRAME-"].update(visible=False)
+    
     if event == "-READ_FILE-":
         window.perform_long_operation(lambda: read_file_data(input_path), "-OUTPUT_WINDOW-")
-    elif event == "-SAVE-":
+    if event == "-SAVE-":
         window.perform_long_operation(lambda: convert_files(input_path, output_path, input_ext, output_ext), "-OUTPUT_WINDOW-")
-    elif event == "Clear Output":
+    if event == "Clear Output":
         window["-OUTPUT_WINDOW-"].update("")
 
 window.close()  # Kill program
