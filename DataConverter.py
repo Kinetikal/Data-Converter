@@ -54,19 +54,14 @@ def convert_files(input_path, output_path, input_ext, output_ext):
 
         # Check and remove whitespace from input file
         if ' ' in open(input_path, 'r').read():
-            remove_whitespace_from_file(input_path)
+            if output_ext.upper() == "XML":
+                remove_whitespace_from_file(input_path)
+                window["-OUTPUT_WINDOW-"].update(f"Successfully converted {Path(input_path).stem} {input_ext.upper()} to {Path(output_path).stem} {output_ext.upper()} (INFO: Input file contained whitespaced, whitespaced have been removed for XML conversion, because it's not supported!)", text_color="#51e98b")
 
         df = read_func(input_path)
-        
-        # Check if the output extension is XML and remove whitespaces
-        if output_ext.upper() == 'XML':
-            output_path_temp = output_path.replace(".xml", "_temp.xml")
-            write_func(df, output_path_temp)
-            remove_whitespace_from_file(output_path_temp)
-            window["-OUTPUT_WINDOW-"].update(f"Successfully converted {Path(input_path).stem} {input_ext.upper()} to {Path(output_path).stem} {output_ext.upper()} (INFO: {input_ext.upper()} contained whitespaces, which were removed for XML Conversion!)", text_color="#51e98b")
-        else:
-            write_func(df, output_path)
-            window["-OUTPUT_WINDOW-"].update(f"Successfully converted {Path(input_path).stem} {input_ext.upper()} to {Path(output_path).stem} {output_ext.upper()}", text_color="#51e98b")
+
+        write_func(df, output_path)
+        window["-OUTPUT_WINDOW-"].update(f"Successfully converted {Path(input_path).stem} {input_ext.upper()} to {Path(output_path).stem} {output_ext.upper()}", text_color="#51e98b")
 
     except FileNotFoundError:
         window["-OUTPUT_WINDOW-"].update(f"{input_ext.upper()} File not found!", text_color="#ff4545")
