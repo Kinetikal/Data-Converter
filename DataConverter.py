@@ -58,15 +58,23 @@ def read_file_data(file):
         
         if file_suffix_in_input == "CSV":
             with open(file, 'r', newline='') as csv_file:
+                
                 # Use the Sniffer class to automatically detect the delimiter
                 sniffer = csv.Sniffer()
-                sample_data = csv_file.read(1024)  # Read a sample of the file to determine the delimiter
+                sample_data = csv_file.read(512)  # Read a sample of the file to determine the delimiter
+                
+                # Determine the CSV Delimiter
                 dialect = sniffer.sniff(sample_data)
                 separator = dialect.delimiter
                 print(f"Seperator: {separator}")
+                
+                # Determine the CSV line ending
+                line_endings = {'\r\n': 'Windows', '\n': 'Unix/Linux', '\r': 'Old Mac'}
+                detected_line_ending = line_endings.get(csv_file.newlines, 'Unknown')
+                print(f"Detected Line Ending: {detected_line_ending}")
             
         if file_suffix_in_input == "CSV":
-            df = pd.read_csv(file, sep=separator, index_col=None, engine="python")
+            df = pd.read_csv(file, sep=separator, lineterminator="\r", index_col=False)
             window["-OUTPUT_WINDOW-"].update(df,text_color="white")
         elif file_suffix_in_input == "XML":
             df = pd.read_xml(file)
