@@ -3,11 +3,12 @@ from pathlib import Path
 import pandas as pd
 import csv
 from lxml import etree
+import numpy as np
 
 # OUTPUT FILES xml,csv,json,xlsx,md,html
 # INPUT FILES csv,xlsx,xml,son
 
-# Define a mapping of file extensions to corresponding read and write functions
+# Mapping of file extensions to corresponding read and write functions
 CONVERSION_FUNCTIONS = {
     # JSON Conversion
     ("json", "html"): (pd.read_json, pd.DataFrame.to_html),
@@ -35,16 +36,16 @@ CONVERSION_FUNCTIONS = {
     ("xlsx", "md"): (pd.read_excel, pd.DataFrame.to_markdown)
 }
 
-# Define a function to remove whitespace from a file
-def remove_whitespace_from_file(file_path):
-    with open(file_path, 'r') as file:
+# Remove whitespace from a file
+def remove_whitespace_from_file(input_file):
+    with open(input_file, 'r') as file:
         content = file.read()
-    content_without_whitespace = content.replace(" ", "")
-    with open(file_path, 'w') as file:
+    content_without_whitespace = content.replace(" ", "_")
+    with open(input_file, 'w') as file:
         file.write(content_without_whitespace)
 
 # Generic conversion function
-def convert_files(input_path, output_path, input_ext, output_ext):
+def convert_files(input_file, output_file, input_ext, output_ext):
     try:
         read_func, write_func = CONVERSION_FUNCTIONS.get((input_ext, output_ext), (None, None))
         
@@ -52,22 +53,31 @@ def convert_files(input_path, output_path, input_ext, output_ext):
             window["-OUTPUT_WINDOW-"].update("Unsupported conversion!", text_color="#ff4545")
             return
 
-        # Check and remove whitespace from input file
-        if ' ' in open(input_path, 'r').read():
-            if output_ext.upper() == "XML":
-                remove_whitespace_from_file(input_path)
-                window["-OUTPUT_WINDOW-"].update(f"Successfully converted {Path(input_path).stem} {input_ext.upper()} to {Path(output_path).stem} {output_ext.upper()} (INFO: Input file contained whitespaced, whitespaced have been removed for XML conversion, because it's not supported!)", text_color="#51e98b")
+        # Check and remove whitespace from input file if the output file is XML
+        if output_ext.upper() == "XML":
+            # If Input file has whitespaces, replace whitespaces with underline
+            if ' ' in open(input_file, 'r').read():
+                remove_whitespace_from_file(input_file)
+                window["-OUTPUT_WINDOW-"].update(f"Successfully converted {Path(input_file).stem} {input_ext.upper()} to {Path(output_file).stem} {output_ext.upper()} (INFO: Input file contained whitespaced, whitespaced have been removed for XML conversion, because it's not supported!)", text_color="#51e98b")
+                
+        df = read_func(input_file)
+        write_func(df, output_file)
+        window["-OUTPUT_WINDOW-"].update(f"Successfully converted {Path(input_file).stem} {input_ext.upper()} to {Path(output_file).stem} {output_ext.upper()}", text_color="#51e98b")
 
-        df = read_func(input_path)
-
-        write_func(df, output_path)
-        window["-OUTPUT_WINDOW-"].update(f"Successfully converted {Path(input_path).stem} {input_ext.upper()} to {Path(output_path).stem} {output_ext.upper()}", text_color="#51e98b")
-
+        # Check if input file has underlines, if it does re-add whitespaces :)
+        if "_" in open(input_file).read():
+            with open(input_file, "r") as file_with_underlines:
+                content = file_with_underlines.read()
+            readd_whitespaces = content.replace("_"," ")
+            with open(input_file,"w") as file_with_underlines:
+                file_with_underlines.write(readd_whitespaces)
+        
     except FileNotFoundError:
         window["-OUTPUT_WINDOW-"].update(f"{input_ext.upper()} File not found!", text_color="#ff4545")
     except Exception as e:
         window["-OUTPUT_WINDOW-"].update(f"ERROR: {e}", text_color="#ff4545")
-        
+ 
+ # Read file data in Pandas DataFrame       
 def read_file_data(file):
     try:
         file_suffix_in_input = Path(file).suffix.upper().strip(".")
@@ -109,7 +119,7 @@ def read_file_data(file):
                 else:
                     lineterminator = None
 
-                df = pd.read_csv(csv_file, delimiter=",", lineterminator=lineterminator, index_col=0)
+                df = pd.read_csv(csv_file, delimiter=",", lineterminator=lineterminator)
                 
         elif file_suffix_in_input == "XML":
             df = pd.read_xml(file)
@@ -132,6 +142,30 @@ def read_file_data(file):
         window["-OUTPUT_WINDOW-"].update(f"ERROR: {e}", text_color="#ff4545")
         return None, []
 
+def get_min_mid_max(file):
+    try:
+        file_suffix = Path(file).suffix.upper().strip(".")
+        pg_columns = values["-COLUMNS-"]
+        
+        if file_suffix == "CSV":
+            df = pd.read_csv(file)
+            # Ensure that df and pg_columns are not None
+            if df is not None and pg_columns != "":
+                if event == "-MIN-":
+                    min_value = df[pg_columns].min()
+                    window["-OUTPUT_WINDOW-"].update(min_value)
+                elif event == "-MID-":
+                    mid_value = df[pg_columns].mean()
+                    window["-OUTPUT_WINDOW-"].update(mid_value)
+                elif event == "-MAX-":
+                    max_value = df[pg_columns].max()
+                    window["-OUTPUT_WINDOW-"].update(max_value)
+            else:
+                window["-OUTPUT_WINDOW-"].update("ERROR: Press 'Read' and then select a Column!")
+    except Exception as e:
+        window["-OUTPUT_WINDOW-"].update(f"ERROR: {e}")
+
+            
 # ====== Graphical User Interface settings ====== #
 
 # Add your new theme colors and settings
@@ -165,7 +199,7 @@ layout_inputs = [[sg.Text("Select an input file for conversion:")],
                              [sg.Text("Output:"), sg.Input(size=(29, 1), key="-FILE_OUTPUT-"), sg.FileSaveAs(button_text="Save as", size=(7,1), file_types=FILE_TYPES_OUTPUT, target="-FILE_OUTPUT-", key="-SAVE_AS_BUTTON-"), sg.Button("Convert", key="-SAVE-")],
                              [sg.Text()]]
 
-layout_data_properties = [[sg.Text("Columns:"),sg.Combo(values="",key="-COLUMNS-",size=(10, 1)),sg.Text("To get the Column names, read a file first.")]]
+layout_data_properties = [[sg.Text("Columns:"),sg.Combo(values="",key="-COLUMNS-",size=(10, 1)),sg.Button("Min",key="-MIN-"),sg.Button("Mid",key="-MID-"),sg.Button("Max",key="-MAX-")]]
 
 layout_output_and_exit = [[sg.Multiline(size=(62, 12), key="-OUTPUT_WINDOW-")],
                              [sg.Button("Exit", expand_x=True)]]
@@ -192,10 +226,10 @@ while True:
         break
 
     # VARIABLES #
-    input_path = values["-FILE_INPUT-"]
-    output_path = values["-FILE_OUTPUT-"]
-    input_ext = Path(input_path).suffix.lower().strip(".")
-    output_ext = Path(output_path).suffix.lower().strip(".")
+    input_file = values["-FILE_INPUT-"]
+    output_file = values["-FILE_OUTPUT-"]
+    input_ext = Path(input_file).suffix.lower().strip(".")
+    output_ext = Path(output_file).suffix.lower().strip(".")
 
     if event == "-CHECKBOX_DATA_PROPERTIES-":
         if values["-CHECKBOX_DATA_PROPERTIES-"]:
@@ -210,9 +244,15 @@ while True:
             window["-OUTPUT_WINDOW_FRAME-"].update(visible=False)
     
     if event == "-READ_FILE-":
-        window.perform_long_operation(lambda: read_file_data(input_path), "-OUTPUT_WINDOW-")
+        window.perform_long_operation(lambda: read_file_data(input_file), "-OUTPUT_WINDOW-")
     if event == "-SAVE-":
-        window.perform_long_operation(lambda: convert_files(input_path, output_path, input_ext, output_ext), "-OUTPUT_WINDOW-")
+        window.perform_long_operation(lambda: convert_files(input_file, output_file, input_ext, output_ext), "-OUTPUT_WINDOW-")
+    if event == "-MIN-":
+        window.perform_long_operation(lambda: get_min_mid_max(input_file),"-OUTPUT_WINDOW-")
+    if event == "-MID-":
+        window.perform_long_operation(lambda: get_min_mid_max(input_file),"-OUTPUT_WINDOW-")
+    if event == "-MAX-":
+        window.perform_long_operation(lambda: get_min_mid_max(input_file),"-OUTPUT_WINDOW-")
     if event == "Clear Output":
         window["-OUTPUT_WINDOW-"].update("")
 
