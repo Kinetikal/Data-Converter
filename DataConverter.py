@@ -4,105 +4,20 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QFileDialog, QMessageBox, QSizePolicy, QTreeView, QFileSystemModel, QSpinBox)
 from PySide6.QtGui import QAction, QCloseEvent, QIcon, QDropEvent
 from PySide6.QtCore import QThread, Signal, QObject, QDir, QFile, QTextStream, QSettings
+from PySide6.QtCore import Qt  # Import Qt for alignment constants
+from pathlib import Path
+from datetime import datetime
 from pathlib import Path
 import re
 import zipfile
 import os
 import sys
 import time
-from datetime import datetime
+import pandas as pd
+import csv
 
 # Directory where the script is located
 basedir = os.path.dirname(__file__)
-
-class Worker(QObject):
-    progress_updated = Signal(int)
-    log_message = Signal(str)
-    finished = Signal()
-    show_message = Signal(str, str)
-
-    def __init__(self, parent, input_folder, output_folder, patterns, compression_method, delete_logfiles_after_zipping, ignore_younger_than, ignore_older_than):
-        super().__init__()
-        self.parent = parent
-        self.input_folder = input_folder
-        self.output_folder = output_folder
-        self.patterns = patterns
-        self.compression_method_text = compression_method  
-        self.delete_logfiles_checkbox = delete_logfiles_after_zipping
-        self.ignore_younger_than = ignore_younger_than
-        self.ignore_older_than = ignore_older_than
-        
-        if compression_method  == "zlib (Fast)":
-            self.compression_method = zipfile.ZIP_DEFLATED
-        elif compression_method  == "bz2 (Good)":
-            self.compression_method = zipfile.ZIP_BZIP2
-        elif compression_method  == "lzma (Highest)":
-            self.compression_method = zipfile.ZIP_LZMA
-
-    def run(self):
-        try:
-            start = time.process_time()
-            counter = 0 # Counter to display compressing archive 1 out of n
-            for pattern in self.patterns:
-                counter += 1 # Updating the counter
-                regex = f"^{re.escape(pattern).replace('\\*', '.*')}$"
-                # Only .log files - Change in the future maybe to any filetype = remove f.endswith(".log"), pattern must then end like this "*.<some_filetype> e.x. (*.xlsx, *.txt, *.mp3 etc...)"
-                matching_files = [f for f in os.listdir(self.input_folder) if f.endswith(".log") and re.match(regex, f)] 
-                now = datetime.now()
-                filtered_files = []
-                
-                for file in matching_files:
-                    file_path = os.path.join(self.input_folder, file)
-                    creation_time = datetime.fromtimestamp(os.path.getctime(file_path))
-                    file_age = (now - creation_time).days
-                    
-                    if (self.ignore_younger_than is None or file_age >= self.ignore_younger_than) and \
-                        (self.ignore_older_than is None or file_age <= self.ignore_older_than):
-                        filtered_files.append(file)
-                        
-                total_files = len(matching_files)
-                
-                if filtered_files:
-                    # Print processing message
-                    self.log_message.emit(f"Starting to compress log files with compression method: {self.compression_method_text}")
-                    creating_archive_message = f"Creating archive {pattern.replace('*', '')}.zip ({counter}/{len(self.patterns)})"
-                    self.log_message.emit(len(creating_archive_message) * "-")
-                    self.log_message.emit(creating_archive_message)
-                    self.log_message.emit(len(creating_archive_message) * "-")
-                    # Continue processing
-                    zip_filename = f"{pattern.replace('*', '')}.zip"
-                    zip_path = os.path.join(self.output_folder, zip_filename)
-                    self.log_message.emit("Starting zipping of log files...")
-                    with zipfile.ZipFile(zip_path, "w", compression=self.compression_method) as zipf:
-                        for index, file in enumerate(matching_files):
-                            file_path = os.path.join(self.input_folder, file)
-                            zipf.write(file_path, arcname=file)
-                            if self.delete_logfiles_checkbox:
-                                os.unlink(file_path) # Deletes zipped log files
-                            self.log_message.emit(f"Zipping file {file}")
-                            progress = int((index + 1) / total_files * 100)
-                            self.progress_updated.emit(progress)
-                    
-                    elapsed = time.process_time() - start
-                    
-                    if self.delete_logfiles_checkbox:
-                        task_complete_message = f"\nTask completed - Created archive '{zip_filename}' with {len(matching_files)} files.\nCleaning up - Deleted {len(matching_files)} log files that were zipped.\nElapsed time: {round(elapsed, 2)} seconds."
-                        self.log_message.emit(task_complete_message)
-                    else:
-                        task_complete_message = f"\nTask completed - Created archive '{zip_filename}' with {len(matching_files)} files.\nElapsed time: {round(elapsed, 2)} seconds."
-                        self.log_message.emit(task_complete_message)
-                else:
-                    self.log_message.emit(f"No files found matching pattern(s): {pattern}")
-                    self.finished.emit()
-                    
-            self.finished.emit()
-            self.show_message.emit("Zipping Completed", "Zipping process completed successfully.")  
-            
-        except Exception as ex:
-            message = f"An exception of type {type(ex).__name__} occurred. Arguments: {ex.args!r}"
-            self.log_message.emit(message)
-            self.show_message.emit("An exception occurred", message)  
-            self.finished.emit()
 
 class DraggableLineEdit(QLineEdit):
     def __init__(self, parent=None):
@@ -137,7 +52,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Data Converter")
         self.setWindowIcon(QIcon("_internal\\icon\\data_converter.ico"))
-        self.setGeometry(500, 250, 800, 700)
+        self.setGeometry(500, 250, 600, 500)
         self.saveGeometry()
         
         # Settings to save current location of the windows on exit
@@ -170,15 +85,87 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Theme load error", f"Failed to load theme:\n{message}")
         
     def initUI(self):
-        
-        
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        layout = QVBoxLayout(central_widget)
         
+        # Main Layout
+        main_layout = QVBoxLayout(central_widget)
+        
+        # Horizontal Layout
         horizontal_layout = QHBoxLayout()
+        
+        # Vertical Layout for widgets in the horizontal layout
+        vert_layout_widgets_one = QVBoxLayout()
+        
+        hor_layout_widgets_one = QHBoxLayout()
+        hor_layout_widgets_two = QHBoxLayout()
+        
+        # Set up the file system model
+        self.tree_view = QTreeView()
+        self.tree_view.setDragEnabled(True)
+        self.file_system_model = QFileSystemModel()
+        self.file_system_model.setRootPath("")
+        self.file_system_model.setFilter(QDir.NoDotAndDotDot | QDir.AllDirs | QDir.Files)
+        
+        # Set the model to the tree view
+        self.tree_view.setModel(self.file_system_model)
+        self.tree_view.setRootIndex(self.file_system_model.index(""))  # Set root index to the filesystem root
+        
+        # Optional: Customize the view
+        self.tree_view.setColumnWidth(0, 250)  # Adjust column width
+        self.tree_view.setHeaderHidden(False)   # Show the header
+        self.tree_view.setSortingEnabled(True)  # Enable sorting
+        
+        # Widgets
+        title_label = QLabel("Data Converter")
+        title_label.setAlignment(Qt.AlignCenter)  # Center-align text
+        title_label.setStyleSheet("font-size: 18pt; font: bold; color: #64b5f6;")
 
-    
+        refresh_theme_button = QPushButton("Refresh Theme")
+        refresh_theme_button.clicked.connect(self.refresh_theme)
+        
+        self.button_load_filesystem = QPushButton("Load new path")
+        self.button_load_filesystem.clicked.connect(self.load_filesystem_path)
+        self.button_load_filesystem.setToolTip("Loads TreeView anew based on the inputted source folder.")
+        
+        combobox_text = QLabel("Select a category for the filetypes:")
+        combobox_category = QComboBox()
+        
+        hor_layout_widgets_one.addWidget(combobox_text)
+        hor_layout_widgets_one.addWidget(combobox_category)
+        
+        # Widgets
+        from_label = QLabel("From:")
+        from_combobox = QComboBox()
+        to_label = QLabel("To:")
+        to_combobox = QComboBox()
+        
+        input_file = DraggableLineEdit()
+        input_file.setPlaceholderText("File to be converted...")
+        
+        # Add widgets to the hor_layout_widgets_two
+        hor_layout_widgets_two.addWidget(from_label)
+        hor_layout_widgets_two.addWidget(from_combobox)
+        hor_layout_widgets_two.addWidget(to_label)
+        hor_layout_widgets_two.addWidget(to_combobox)
+        
+        # Add widgets to the vertical layout
+        vert_layout_widgets_one.addWidget(title_label)
+        vert_layout_widgets_one.addLayout(hor_layout_widgets_one)
+        vert_layout_widgets_one.addLayout(hor_layout_widgets_two)
+        vert_layout_widgets_one.addWidget(input_file)
+        
+        # Add some spacing between elements
+        vert_layout_widgets_one.addStretch()
+        vert_layout_widgets_one.addWidget(self.tree_view)
+        vert_layout_widgets_one.addWidget(self.button_load_filesystem)
+        vert_layout_widgets_one.addWidget(refresh_theme_button)
+
+        # Add the vertical layout to the horizontal layout
+        horizontal_layout.addLayout(vert_layout_widgets_one)
+
+        # Add the horizontal layout to the main layout
+        main_layout.addLayout(horizontal_layout)
 
     
     def closeEvent(self, event: QCloseEvent):
@@ -215,6 +202,9 @@ class MainWindow(QMainWindow):
         open_menu.addAction(open_output_action)
     
     # ====== Functions Start ====== #
+    
+    def refresh_theme(self):
+        self.initialize_theme(self.theme)
 
     # Open Log files input folder 
     def open_input_folder(self):
@@ -255,6 +245,19 @@ class MainWindow(QMainWindow):
         folder = QFileDialog.getExistingDirectory(self, "Select Directory")
         if folder:
             self.output_folder.setText(folder)
+            
+    def load_filesystem_path(self):
+        try:
+            folder = QFileDialog.getExistingDirectory(self, "Select Directory")
+            if folder and QDir(folder).exists():  # Ensure the folder path exists
+                # Update the file system model root path and tree view root index
+                self.file_system_model.setRootPath(folder)
+                self.tree_view.setRootIndex(self.file_system_model.index(folder))
+                print(f"Loaded folder: {folder}")
+            else:
+                QMessageBox.warning(self, "Warning", f"Source path does not exist or is empty:\n{folder}")
+        except Exception as ex:
+            print(f"An exception of type {type(ex).__name__} occurred. Arguments: {ex.args!r}")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
