@@ -7,6 +7,14 @@ QWidget {
     border: none;
 }
 
+QTextEdit {
+    background-color: #f3f3f3;
+    color: #ffffff;
+    border: 1px solid #000000;
+    border-radius: 6px;
+    padding: 6px 12px;
+}
+
 /* Button Styling */
 QPushButton {
     background-color: #e3f2fd;

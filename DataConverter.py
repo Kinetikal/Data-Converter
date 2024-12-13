@@ -87,85 +87,101 @@ class MainWindow(QMainWindow):
     def initUI(self):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        
+
         # Main Layout
         main_layout = QVBoxLayout(central_widget)
-        
-        # Horizontal Layout
-        horizontal_layout = QHBoxLayout()
-        
-        # Vertical Layout for widgets in the horizontal layout
-        vert_layout_widgets_one = QVBoxLayout()
-        
-        hor_layout_widgets_one = QHBoxLayout()
-        hor_layout_widgets_two = QHBoxLayout()
-        
-        # Set up the file system model
+
+        # Top Layout: Left Panel and Output Window
+        top_layout = QHBoxLayout()
+
+        # Left Panel Layout
+        left_panel_layout = QVBoxLayout()
+
+
+        # Title Label
+        title_label = QLabel("Data Converter")
+        title_label.setFixedHeight(25)
+        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setStyleSheet("font-size: 18pt; font: bold; color: #64b5f6; padding: 2px;")
+        desc_label = QLabel("Convert filetypes to other filetypes")
+        desc_label.setFixedHeight(25)  
+        desc_label.setAlignment(Qt.AlignCenter)
+        desc_label.setStyleSheet("padding: 2px;")
+        left_panel_layout.addWidget(title_label)
+        left_panel_layout.addWidget(desc_label)
+
+        # Category Selection Layout
+        category_layout = QHBoxLayout()
+        combobox_text = QLabel("Select a category for the filetypes:")
+        combobox_category = QComboBox()
+        combobox_category.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        combobox_category.setPlaceholderText("Select a filetype category...")
+        category_layout.addWidget(combobox_text)
+        category_layout.addWidget(combobox_category)
+        left_panel_layout.addLayout(category_layout)
+
+        # File Conversion Layout
+        conversion_layout = QHBoxLayout()
+        from_label = QLabel("From:")
+        from_combobox = QComboBox()
+        from_combobox.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        from_combobox.setPlaceholderText("Select a filetype...")
+
+        to_label = QLabel("To:")
+        to_combobox = QComboBox()
+        to_combobox.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        to_combobox.setPlaceholderText("Select a filetype...")
+
+        conversion_layout.addWidget(from_label)
+        conversion_layout.addWidget(from_combobox)
+        conversion_layout.addWidget(to_label)
+        conversion_layout.addWidget(to_combobox)
+        left_panel_layout.addLayout(conversion_layout)
+
+        # File Input Layout
+        file_input_layout = QHBoxLayout()
+        input_label = QLabel("Select a file:")
+        self.input_file = DraggableLineEdit()
+        self.input_file.setPlaceholderText("File to be converted...")
+        input_browse_button = QPushButton("Browse")
+        input_browse_button.clicked.connect(self.browse_input_file)
+        file_input_layout.addWidget(input_label)
+        file_input_layout.addWidget(self.input_file)
+        file_input_layout.addWidget(input_browse_button)
+        left_panel_layout.addLayout(file_input_layout)
+
+        # Buttons
+        self.button_load_filesystem = QPushButton("Load new path")
+        self.button_load_filesystem.clicked.connect(self.load_filesystem_path)
+        self.button_load_filesystem.setToolTip("Loads TreeView anew based on the inputted source folder.")
+
+        refresh_theme_button = QPushButton("Refresh Theme")
+        refresh_theme_button.clicked.connect(self.refresh_theme)
+
+        # Output Window
+        output_window = QTextEdit()
+        output_window.setReadOnly(True)
+        top_layout.addLayout(left_panel_layout)
+        top_layout.addWidget(output_window)
+
+        # Add Top Layout to Main Layout
+        main_layout.addLayout(top_layout)
+
+        # QTreeView for Full Width
         self.tree_view = QTreeView()
         self.tree_view.setDragEnabled(True)
         self.file_system_model = QFileSystemModel()
         self.file_system_model.setRootPath("")
         self.file_system_model.setFilter(QDir.NoDotAndDotDot | QDir.AllDirs | QDir.Files)
-        
-        # Set the model to the tree view
         self.tree_view.setModel(self.file_system_model)
-        self.tree_view.setRootIndex(self.file_system_model.index(""))  # Set root index to the filesystem root
-        
-        # Optional: Customize the view
-        self.tree_view.setColumnWidth(0, 250)  # Adjust column width
-        self.tree_view.setHeaderHidden(False)   # Show the header
-        self.tree_view.setSortingEnabled(True)  # Enable sorting
-        
-        # Widgets
-        title_label = QLabel("Data Converter")
-        title_label.setAlignment(Qt.AlignCenter)  # Center-align text
-        title_label.setStyleSheet("font-size: 18pt; font: bold; color: #64b5f6;")
+        self.tree_view.setRootIndex(self.file_system_model.index(""))
+        self.tree_view.setColumnWidth(0, 250)
+        self.tree_view.setHeaderHidden(False)
+        self.tree_view.setSortingEnabled(True)
+        main_layout.addWidget(self.tree_view)
+        main_layout.addWidget(self.button_load_filesystem)
+        main_layout.addWidget(refresh_theme_button)
 
-        refresh_theme_button = QPushButton("Refresh Theme")
-        refresh_theme_button.clicked.connect(self.refresh_theme)
-        
-        self.button_load_filesystem = QPushButton("Load new path")
-        self.button_load_filesystem.clicked.connect(self.load_filesystem_path)
-        self.button_load_filesystem.setToolTip("Loads TreeView anew based on the inputted source folder.")
-        
-        combobox_text = QLabel("Select a category for the filetypes:")
-        combobox_category = QComboBox()
-        
-        hor_layout_widgets_one.addWidget(combobox_text)
-        hor_layout_widgets_one.addWidget(combobox_category)
-        
-        # Widgets
-        from_label = QLabel("From:")
-        from_combobox = QComboBox()
-        to_label = QLabel("To:")
-        to_combobox = QComboBox()
-        
-        input_file = DraggableLineEdit()
-        input_file.setPlaceholderText("File to be converted...")
-        
-        # Add widgets to the hor_layout_widgets_two
-        hor_layout_widgets_two.addWidget(from_label)
-        hor_layout_widgets_two.addWidget(from_combobox)
-        hor_layout_widgets_two.addWidget(to_label)
-        hor_layout_widgets_two.addWidget(to_combobox)
-        
-        # Add widgets to the vertical layout
-        vert_layout_widgets_one.addWidget(title_label)
-        vert_layout_widgets_one.addLayout(hor_layout_widgets_one)
-        vert_layout_widgets_one.addLayout(hor_layout_widgets_two)
-        vert_layout_widgets_one.addWidget(input_file)
-        
-        # Add some spacing between elements
-        vert_layout_widgets_one.addStretch()
-        vert_layout_widgets_one.addWidget(self.tree_view)
-        vert_layout_widgets_one.addWidget(self.button_load_filesystem)
-        vert_layout_widgets_one.addWidget(refresh_theme_button)
-
-        # Add the vertical layout to the horizontal layout
-        horizontal_layout.addLayout(vert_layout_widgets_one)
-
-        # Add the horizontal layout to the main layout
-        main_layout.addLayout(horizontal_layout)
 
     
     def closeEvent(self, event: QCloseEvent):
@@ -234,12 +250,13 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Path Error", f"Path does not exist or is not a valid path:\n{directory_path}")
 
         
-    def browse_input_folder(self):
-        folder = QFileDialog.getExistingDirectory(self, "Select Directory")
-        if folder:
-            self.input_folder.setText(folder)
-            self.update_log_files_count(folder)
-            
+    def browse_input_file(self):
+        try:
+            file_name, _ = QFileDialog.getOpenFileName(self, "Select file")
+            if file_name:
+                self.input_file.setText(file_name)
+        except TypeError:
+            print(file_name)
             
     def browse_output_folder(self):
         folder = QFileDialog.getExistingDirectory(self, "Select Directory")
